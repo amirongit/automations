@@ -1,10 +1,10 @@
-from itertools import count
 from subprocess import run
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 
 AUDIO_FORMAT = "m4a"
+POSITIVE_INPUTS = ('yes', '1', 'true')
 
 
 def create_delimiter(dest: str, length: int) -> str:
@@ -40,15 +40,9 @@ def download(urls: list[str], high_quality: bool, use_inf_retries: bool, proxy: 
     return out
 
 
-def read_urls() -> list[str]:
-    print("urls (empty to finish) ")
-    out: list[str] = []
-    for c in count():
-        if in_ := input(f"{c}: "):
-            out.append(in_)
-        else:
-            break
-    return out
+def read_urls(file: str) -> list[str]:
+    with open(file, 'r') as f:
+        return [u.removesuffix('\n') for u in f.readlines()]
 
 
 def exit_if_not_successful(command: str) -> None:
@@ -64,16 +58,21 @@ if __name__ == "__main__":
             fl.writelines(
                 get_ordered_files_list(
                     download(
-                        read_urls(),
-                        input("is your life ruined by plato's dualism? ").lower() in ('no', '0', 'false'),
-                        input("how severely are you cooked? ").lower() == "well done",
-                        input("what's the solution to fix this problem a little? (empty if don't have to deal with it) "),
+                        read_urls(
+                            input("file containing urls (one per line): ")
+                        ),
+                        input("high quality? ").lower() in POSITIVE_INPUTS,
+                        input("infinite retries? ").lower() in POSITIVE_INPUTS,
+                        input("proxy (could be empty): "),
                         tmpdir,
                     ),
-                    create_delimiter(tmpdir, int(input("how much do you know about silence?! ")))
+                    create_delimiter(
+                        tmpdir,
+                        int(input("length of silence between tracks: "))
+                    )
                 )
             )
         exit_if_not_successful(
             f"ffmpeg -y -f concat -safe 0 -i {files_list} -c copy "
-            f"{input(f"and, what's your claim against plato? (full path with {AUDIO_FORMAT} extension please!) ")}"
+            f"{input(f"output file (full path with {AUDIO_FORMAT} extension): ")}"
         )
